@@ -1,9 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""生成 GitHub 主页 README —— 自制 SVG 卡片（零外部依赖），editorial 暗色风格。
+"""生成 GitHub 主页 README —— 自制 SVG 片段（零外部依赖），融入式 editorial 风格。
 
-设计语言：墨黑底 + 哑光金单一强调色 + 衬线标题 + 细线分隔。克制、留白、对齐。
-所有卡片输出为 assets/*.svg 文件，README 用 <img src="assets/xxx.svg"> 引用
+设计语言：墨黑+哑光金单一强调色 + 衬线标题 + 细线分隔，克制、留白、对齐。
+关键改造（融入式）：
+  - 所有 SVG 透明底、无背景、无边框、无圆角外壳 —— 直接画在 GitHub 容器上，
+    避免「框中框」不伦不类。
+  - 内置 prefers-color-scheme 明暗双配色（CSS 变量 + @media），亮色 GitHub 也不会白底黑字瞎眼。
+  - 贡献图不重复画原生热力图，改画「近 12 个月贡献柱状图」与原生互补。
+所有片段输出为 assets/*.svg，README 用 <img src="assets/xxx.svg"> 引用
 （GitHub README 不允许内联 <svg>，必须走图片引用）。
 
 用法: python scripts/generate.py   （需 gh 已登录或设置 GITHUB_TOKEN）
@@ -17,20 +22,11 @@ import subprocess
 import sys
 import urllib.request
 import xml.etree.ElementTree as ET
+from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 
 USER = "liu-li-huan-ying"
 W = 720  # 容器宽度
-
-# —— 配色：墨黑 / 暖白 / 冷灰 / 哑光金（单一克制强调色）——
-C_BG = "#0b0e14"
-C_SURFACE = "#0e1219"
-C_HAIR = "#222833"
-C_TEXT = "#ECEAE4"
-C_DIM = "#878d97"
-C_MUTE = "#565c66"
-C_GOLD = "#C8A97E"
-C_GOLD_SOFT = "#E6D2B0"
 
 SERIF = "'Georgia','Noto Serif SC','Songti SC',serif"
 SANS = (
@@ -58,6 +54,21 @@ SKILLS = [
 TZ = timezone(timedelta(hours=8))
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ASSETS = os.path.join(ROOT, "assets")
+
+# —— 双配色：CSS 变量 + 媒体查询。透明底，文字/描边随 GitHub 明暗自适应 ——
+# 默认（暗色 GitHub）用亮字；亮色 GitHub（prefers-color-scheme: light）翻成深字。
+STYLE = (
+    "<style>"
+    ":root{--text:#ECEAE4;--dim:#8b919b;--mute:#6b7280;--gold:#C8A97E;"
+    "--soft:#E6D2B0;--hair:#232a35}"
+    "@media (prefers-color-scheme: light){"
+    ":root{--text:#1f2328;--dim:#59636e;--mute:#818b96;--gold:#9a753f;"
+    "--soft:#7d5e30;--hair:#d1d9e0}}"
+    ".t{fill:var(--text)}.d{fill:var(--dim)}.m{fill:var(--mute)}"
+    ".g{fill:var(--gold)}.s{fill:var(--soft)}.h{fill:var(--hair)}"
+    ".hb{fill:none;stroke:var(--hair);stroke-width:1}"
+    "</style>"
+)
 
 
 # ---------------------------------------------------------------- 工具
@@ -105,26 +116,15 @@ def validate(svg, name):
         sys.exit(1)
 
 
-def grad_defs(gid, colors):
-    stops = "".join(
-        f'<stop offset="{i / (len(colors) - 1) * 100:.0f}%" stop-color="{c}"/>'
-        for i, c in enumerate(colors))
-    return (f'<linearGradient id="{gid}" x1="0%" y1="0%" x2="100%" y2="0%">'
-            f'{stops}</linearGradient>')
-
-
 def svg_open(h):
     return (f'<svg xmlns="http://www.w3.org/2000/svg" width="{W}" height="{h}" '
             f'viewBox="0 0 {W} {h}" fill="none" '
             f'style="max-width:100%;height:auto">')
 
 
-def card(h, inner):
-    return (svg_open(h)
-            + f"<defs>{grad_defs('gold',[C_GOLD,C_GOLD_SOFT])}</defs>"
-            + f'<rect x="0" y="0" width="{W}" height="{h}" rx="6" '
-            f'fill="{C_BG}" stroke="{C_HAIR}" stroke-width="1"/>'
-            + inner + "</svg>")
+def panel(h, inner):
+    """透明底、无外壳的 SVG 片段。"""
+    return svg_open(h) + STYLE + inner + "</svg>"
 
 
 def data_uri(svg):
@@ -194,44 +194,43 @@ def calc_streaks(days):
 # ---------------------------------------------------------------- SVG 模块
 
 def svg_header():
-    h = 200
+    h = 196
     inner = (
-        f'<rect x="{(W-56)/2:.0f}" y="56" width="56" height="2" fill="url(#gold)"/>'
+        f'<rect x="{(W-56)/2:.0f}" y="56" width="56" height="2" class="g"/>'
         f'<text x="{W/2}" y="106" text-anchor="middle" font-family="{SERIF}" '
-        f'font-size="40" fill="{C_TEXT}">琉璃幻影</text>'
+        f'font-size="40" class="t">琉璃幻影</text>'
         f'<text x="{W/2}" y="130" text-anchor="middle" font-family="{MONO}" '
-        f'font-size="11" letter-spacing="4" fill="{C_GOLD}">INDEPENDENT BUILDER</text>'
+        f'font-size="11" letter-spacing="4" class="g">INDEPENDENT BUILDER</text>'
         f'<text x="{W/2}" y="154" text-anchor="middle" font-family="{SANS}" '
-        f'font-size="13" fill="{C_DIM}">独立开发者 · 造趁手的工具</text>'
+        f'font-size="13" class="d">独立开发者 · 造趁手的工具</text>'
         f'<text x="{W/2}" y="176" text-anchor="middle" font-family="{MONO}" '
-        f'font-size="11" letter-spacing="1" fill="{C_MUTE}">'
-        f'China · UTC+8 · GitHub since 2018</text>'
-        f'<rect x="24" y="192" width="{W-48}" height="1" fill="{C_HAIR}" opacity="0.6"/>'
+        f'font-size="11" letter-spacing="1" class="m">China · UTC+8 · GitHub since 2018</text>'
+        f'<rect x="24" y="188" width="{W-48}" height="1" class="h"/>'
     )
-    return card(h, inner)
+    return panel(h, inner)
 
 
 def svg_manifesto():
     h = 104
     inner = (
-        f'<rect x="{W/2-20:.0f}" y="22" width="40" height="1" fill="{C_GOLD}" opacity="0.7"/>'
+        f'<rect x="{W/2-20:.0f}" y="22" width="40" height="1" class="g"/>'
         f'<text x="{W/2}" y="56" text-anchor="middle" font-family="{SERIF}" '
-        f'font-size="20" fill="{C_TEXT}">我造工具，先为自己，也为同样挑剔的人。</text>'
+        f'font-size="20" class="t">我造工具，先为自己，也为同样挑剔的人。</text>'
         f'<text x="{W/2}" y="82" text-anchor="middle" font-family="{SANS}" '
-        f'font-size="12.5" font-style="italic" fill="{C_MUTE}">'
+        f'font-size="12.5" font-style="italic" class="m">'
         f'Tools I build for myself first — then for people just as picky.</text>'
-        f'<rect x="{W/2-20:.0f}" y="96" width="40" height="1" fill="{C_GOLD}" opacity="0.7"/>'
+        f'<rect x="{W/2-20:.0f}" y="96" width="40" height="1" class="g"/>'
     )
-    return card(h, inner)
+    return panel(h, inner)
 
 
 def svg_stats(stats):
     cols = 4
     colw = W / cols
-    h = 124
+    h = 120
     inner = []
     for i in range(1, cols):
-        inner.append(f'<rect x="{i*colw:.0f}" y="34" width="1" height="58" fill="{C_HAIR}"/>')
+        inner.append(f'<rect x="{i*colw:.0f}" y="34" width="1" height="58" class="h"/>')
     items = [
         ("总贡献", f"{stats['total']:,}"),
         ("公开仓库", str(stats["repos"])),
@@ -242,68 +241,56 @@ def svg_stats(stats):
         cx = (i + 0.5) * colw
         inner.append(
             f'<text x="{cx:.0f}" y="74" text-anchor="middle" font-family="{SANS}" '
-            f'font-size="34" font-weight="200" fill="{C_TEXT}">{esc(val)}</text>'
+            f'font-size="34" font-weight="200" class="t">{esc(val)}</text>'
             f'<text x="{cx:.0f}" y="98" text-anchor="middle" font-family="{MONO}" '
-            f'font-size="10" letter-spacing="2" fill="{C_DIM}">{esc(label)}</text>'
+            f'font-size="10" letter-spacing="2" class="d">{esc(label)}</text>'
         )
-    return card(h, "".join(inner))
+    return panel(h, "".join(inner))
 
 
-def svg_graph(d):
-    days = d["days"]
-    cell, gap = 9, 3
-    left, top = 34, 30
-    cols = len(days) // 7
-    h = top + 7 * (cell + gap) + 34
-    LEVELS = ["#161922", "#2a2f1a", "#4a3f22", "#8a7550", C_GOLD]
-    out = []
-
-    for idx, label in ((1, "一"), (3, "三"), (5, "五")):
+def svg_monthly(d):
+    """近 12 个月贡献柱状图 —— 与原生热力图互补，不重复。"""
+    md = defaultdict(int)
+    for day in d["days"]:
+        md[(day["date"].year, day["date"].month)] += day["count"]
+    today = datetime.now(TZ).date()
+    seq, y, m = [], today.year, today.month
+    for _ in range(12):
+        seq.append((y, m))
+        m -= 1
+        if m == 0:
+            m, y = 12, y - 1
+    seq.reverse()
+    counts = [md.get((yy, mm), 0) for (yy, mm) in seq]
+    total = sum(counts)
+    maxc = max(counts) or 1
+    n = len(seq)
+    left, right, top, base = 20, 20, 56, 196
+    innerW = W - left - right
+    gap = 10
+    barW = (innerW - gap * (n - 1)) / n
+    barMaxH = base - top - 22
+    out = [
+        f'<text x="{left}" y="28" font-family="{SERIF}" font-size="18" class="t">每月贡献</text>',
+        f'<text x="{W-right}" y="28" text-anchor="end" font-family="{MONO}" '
+        f'font-size="11" letter-spacing="1" class="m">近 12 个月 · 合计 {total:,}</text>',
+        f'<line x1="{left}" y1="40" x2="{W-right}" y2="40" class="hb"/>',
+    ]
+    for i, c in enumerate(counts):
+        x = left + i * (barW + gap)
+        bh = max(c / maxc * barMaxH, 2.0) if c > 0 else 0
+        yb = base - bh
         out.append(
-            f'<text x="26" y="{top + idx*(cell+gap) + cell - 2:.0f}" text-anchor="end" '
-            f'font-family="{SANS}" font-size="9" fill="{C_MUTE}">{label}</text>')
-    last_m = None
-    for w_i in range(cols):
-        day = days[w_i * 7]
-        if day["date"].month != last_m:
-            last_m = day["date"].month
+            f'<rect x="{x:.1f}" y="{yb:.1f}" width="{barW:.1f}" height="{bh:.1f}" '
+            f'rx="2" class="g"><title>{seq[i][0]}年{seq[i][1]}月 · {c} 次</title></rect>')
+        if c > 0:
             out.append(
-                f'<text x="{left + w_i*(cell+gap):.0f}" y="{top - 10}" '
-                f'font-family="{MONO}" font-size="9" fill="{C_MUTE}">{last_m}</text>')
-
-    def level(c):
-        if c == 0:
-            return 0
-        if c <= 3:
-            return 1
-        if c <= 7:
-            return 2
-        if c <= 14:
-            return 3
-        return 4
-
-    for i, day in enumerate(days):
-        w_i, d_i = divmod(i, 7)
-        x = left + w_i * (cell + gap)
-        y = top + d_i * (cell + gap)
-        lv = level(day["count"])
-        fill = LEVELS[lv]
-        stroke = C_HAIR if lv == 0 else "none"
-        tip = f"{day['date'].isoformat()} · {day['count']} 次贡献"
+                f'<text x="{x+barW/2:.1f}" y="{yb-6:.1f}" text-anchor="middle" '
+                f'font-family="{MONO}" font-size="9" class="m">{c}</text>')
         out.append(
-            f'<circle cx="{x + cell/2:.1f}" cy="{y + cell/2:.1f}" r="{cell/2:.1f}" '
-            f'fill="{fill}" stroke="{stroke}"><title>{esc(tip)}</title></circle>')
-
-    total = d["cal"]["totalContributions"]
-    longest, current = calc_streaks(days)
-    out.append(
-        f'<text x="{left}" y="{h - 12}" font-family="{SANS}" font-size="12" '
-        f'fill="{C_DIM}">近一年 <tspan fill="{C_GOLD}">{total:,}</tspan> 次贡献 · '
-        f'最长连续 {longest} 天 · 当前连续 {current} 天</text>')
-    out.append(
-        f'<text x="{W-24}" y="{h - 12}" text-anchor="end" font-family="{SANS}" '
-        f'font-size="11" fill="{C_MUTE}">少 · 多</text>')
-    return card(h, "".join(out))
+            f'<text x="{x+barW/2:.1f}" y="{base+16:.1f}" text-anchor="middle" '
+            f'font-family="{SANS}" font-size="10" class="d">{seq[i][1]}月</text>')
+    return panel(base + 28, "".join(out))
 
 
 def svg_langs(d):
@@ -318,7 +305,7 @@ def svg_langs(d):
     total = sum(agg.values())
     top = sorted(agg.items(), key=lambda kv: -kv[1])[:8]
     bar_h, h = 5, 120
-    out = [f'<rect x="0" y="0" width="{W}" height="{bar_h}" rx="2.5" fill="{C_HAIR}"/>']
+    out = [f'<rect x="0" y="0" width="{W}" height="{bar_h}" rx="2.5" class="h"/>']
     x = 0.0
     for lang, size in top:
         w = W * size / total
@@ -337,10 +324,10 @@ def svg_langs(d):
         out.append(
             f'<circle cx="{lx + 6}" cy="{ly - 4}" r="4.5" fill="{c}"/>'
             f'<text x="{lx + 18}" y="{ly}" font-family="{SANS}" font-size="13" '
-            f'fill="{C_TEXT}">{esc(lang)}</text>'
+            f'class="t">{esc(lang)}</text>'
             f'<text x="{lx + 18}" y="{ly + 15}" font-family="{MONO}" font-size="10" '
-            f'fill="{C_MUTE}">{pct:.1f}%</text>')
-    return card(h, "".join(out))
+            f'class="m">{pct:.1f}%</text>')
+    return panel(h, "".join(out))
 
 
 def svg_skills():
@@ -373,11 +360,11 @@ def svg_skills():
             w = cw(s)
             out.append(
                 f'<rect x="{x:.1f}" y="{y}" width="{w:.1f}" height="{ch_h}" rx="15" '
-                f'fill="{C_SURFACE}" stroke="{C_HAIR}"/>'
+                f'class="hb"/>'
                 f'<text x="{x + w/2:.1f}" y="{y + 20}" text-anchor="middle" '
-                f'font-family="{SANS}" font-size="12.5" fill="{C_TEXT}">{esc(s)}</text>')
+                f'font-family="{SANS}" font-size="12.5" class="t">{esc(s)}</text>')
             x += w + h_gap
-    return card(h, "".join(out))
+    return panel(h, "".join(out))
 
 
 def event_text(e):
@@ -444,24 +431,24 @@ def svg_feed(d, limit=7):
         else:
             ago = f"{delta.days // 30} 个月前"
         out.append(
-            f'<circle cx="10" cy="{y - 4}" r="3" fill="{C_GOLD}"/>'
-            f'<text x="26" y="{y}" font-family="{SANS}" font-size="13" fill="{C_TEXT}">'
+            f'<circle cx="10" cy="{y - 4}" r="3" class="g"/>'
+            f'<text x="26" y="{y}" font-family="{SANS}" font-size="13" class="t">'
             f'{esc(event_text(e))}</text>'
             f'<text x="{W}" y="{y}" text-anchor="end" font-family="{MONO}" '
-            f'font-size="11" fill="{C_MUTE}">{esc(ago)}</text>')
+            f'font-size="11" class="m">{esc(ago)}</text>')
         if i < len(events) - 1:
-            out.append(f'<rect x="10" y="{y + 9}" width="1" height="11" fill="{C_HAIR}"/>')
-    return card(h, "".join(out))
+            out.append(f'<rect x="10" y="{y + 9}" width="1" height="11" class="h"/>')
+    return panel(h, "".join(out))
 
 
 def svg_footer():
     h = 46
     inner = (
-        f'<rect x="120" y="14" width="{W-240}" height="1" fill="{C_HAIR}" opacity="0.7"/>'
+        f'<rect x="120" y="14" width="{W-240}" height="1" class="h"/>'
         f'<text x="{W/2}" y="32" text-anchor="middle" font-family="{MONO}" '
-        f'font-size="11" letter-spacing="1" fill="{C_MUTE}">Crafted with restraint · 2026</text>'
+        f'font-size="11" letter-spacing="1" class="m">Crafted with restraint · 2026</text>'
     )
-    return card(h, inner)
+    return panel(h, inner)
 
 
 # ---------------------------------------------------------------- 主流程
@@ -482,7 +469,7 @@ def main():
         "HEADER": svg_header(),
         "MANIFESTO": svg_manifesto(),
         "STATS": svg_stats(stats),
-        "GRAPH": svg_graph(d),
+        "GRAPH": svg_monthly(d),
         "LANGS": svg_langs(d),
         "SKILLS": svg_skills(),
         "FEED": svg_feed(d),
@@ -501,7 +488,7 @@ def main():
         tpl = f.read()
     for k, v in parts.items():
         alt = {"HEADER": "琉璃幻影", "MANIFESTO": "个人宣言", "STATS": "GitHub 数据",
-               "GRAPH": "贡献热力图", "LANGS": "语言分布", "SKILLS": "技术栈",
+               "GRAPH": "每月贡献柱状图", "LANGS": "语言分布", "SKILLS": "技术栈",
                "FEED": "最近动态", "FOOTER": "页脚", "UPDATED": "更新时间"}[k]
         if k == "UPDATED":
             tpl = tpl.replace(f"<!--{k}-->", v)

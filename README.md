@@ -35,7 +35,7 @@
 
 <br>
 
-<div align="center"><img src="assets/graph.svg" alt="贡献热力图" /></div>
+<div align="center"><img src="assets/graph.svg" alt="每月贡献柱状图" /></div>
 
 <br>
 
@@ -85,6 +85,6 @@
 
 👀 主页访问次数：<img src="https://komarev.com/ghpvc/?username=liu-li-huan-ying&style=flat-square&color=C8A97E&label=Visits" alt="访问计数" height="20">
 
-<sub>本页数据由 GitHub Actions 每日自动更新 · 最后更新 2026-09-11 08:17 (UTC+8)</sub>
+<sub>本页数据由 GitHub Actions 每日自动更新 · 最后更新 2026-09-11 12:20 (UTC+8)</sub>
 
 </div>
