@@ -293,6 +293,42 @@ def svg_monthly(d):
     return panel(base + 28, "".join(out))
 
 
+def svg_weekday(d):
+    """每周贡献节奏（周一到周日）—— 原生热力图不聚合到星期，互补。"""
+    from collections import defaultdict
+    wd = defaultdict(int)
+    for day in d["days"]:
+        wd[day["date"].isoweekday()] += day["count"]  # 1=周一 .. 7=周日
+    labels = ["一", "二", "三", "四", "五", "六", "日"]
+    counts = [wd.get(i, 0) for i in range(1, 8)]
+    total = sum(counts)
+    maxc = max(counts) or 1
+    peak_i = max(range(1, 8), key=lambda i: wd.get(i, 0))
+    n = 7
+    left, right, top, base = 24, 24, 52, 150
+    innerW = W - left - right
+    gap = 18
+    barW = (innerW - gap * (n - 1)) / n
+    barMaxH = base - top - 16
+    out = [
+        f'<text x="{left}" y="28" font-family="{SERIF}" font-size="18" class="t">每周节奏</text>',
+        f'<text x="{W-right}" y="28" text-anchor="end" font-family="{MONO}" '
+        f'font-size="11" letter-spacing="1" class="m">一周 {total:,} 次 · 高峰 周{labels[peak_i-1]}</text>',
+        f'<line x1="{left}" y1="40" x2="{W-right}" y2="40" class="hb"/>',
+    ]
+    for i, c in enumerate(counts):
+        x = left + i * (barW + gap)
+        bh = max(c / maxc * barMaxH, 3.0) if c > 0 else 0
+        yb = base - bh
+        out.append(
+            f'<rect x="{x:.1f}" y="{yb:.1f}" width="{barW:.1f}" height="{bh:.1f}" '
+            f'rx="2" class="g"><title>周{labels[i]} · {c} 次</title></rect>')
+        out.append(
+            f'<text x="{x+barW/2:.1f}" y="{base+16:.1f}" text-anchor="middle" '
+            f'font-family="{SANS}" font-size="11" class="d">{labels[i]}</text>')
+    return panel(base + 28, "".join(out))
+
+
 def svg_langs(d):
     repos = [r for r in d["repos"] if not r.get("fork")]
     agg = {}
@@ -470,6 +506,7 @@ def main():
         "MANIFESTO": svg_manifesto(),
         "STATS": svg_stats(stats),
         "GRAPH": svg_monthly(d),
+        "WEEKDAY": svg_weekday(d),
         "LANGS": svg_langs(d),
         "SKILLS": svg_skills(),
         "FEED": svg_feed(d),
@@ -488,7 +525,7 @@ def main():
         tpl = f.read()
     for k, v in parts.items():
         alt = {"HEADER": "琉璃幻影", "MANIFESTO": "个人宣言", "STATS": "GitHub 数据",
-               "GRAPH": "每月贡献柱状图", "LANGS": "语言分布", "SKILLS": "技术栈",
+               "GRAPH": "每月贡献柱状图", "WEEKDAY": "每周贡献节奏", "LANGS": "语言分布", "SKILLS": "技术栈",
                "FEED": "最近动态", "FOOTER": "页脚", "UPDATED": "更新时间"}[k]
         if k == "UPDATED":
             tpl = tpl.replace(f"<!--{k}-->", v)
@@ -504,7 +541,7 @@ def main():
             "align-items:center;gap:16px;padding:28px 16px'>",
             "<div style='width:720px;max-width:100%;display:flex;flex-direction:column;"
             "gap:16px'>"]
-    for k in ["HEADER", "MANIFESTO", "STATS", "GRAPH", "LANGS", "SKILLS", "FEED", "FOOTER"]:
+    for k in ["HEADER", "MANIFESTO", "STATS", "GRAPH", "WEEKDAY", "LANGS", "SKILLS", "FEED", "FOOTER"]:
         prev.append(f"<div style='border-radius:8px;overflow:hidden'>"
                     f"<img src='{data_uri(parts[k])}' style='width:100%;display:block'/></div>")
     prev.append("</div></body>")

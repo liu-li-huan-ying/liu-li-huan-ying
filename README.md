@@ -12,9 +12,6 @@
 
 想用的东西要是没有，或者做得不够好，就自己写一个。
 
-背单词软件又要收费、又把数据锁在云端，于是有了 **[背呗 drill](https://github.com/liu-li-huan-ying/drill)**；
-想找个干净、好看、硬解不掉帧的播放器，于是拿 libmpv 和 SDL2 自己糊了 **[phantom-video](https://github.com/liu-li-huan-ying/phantom-video)**。
-
 做东西有三条原则 ——
 
 - **本地优先** — 数据放在你自己的硬盘上，不是我的服务器上。
@@ -39,6 +36,10 @@
 
 <br>
 
+<div align="center"><img src="assets/weekday.svg" alt="每周贡献节奏" /></div>
+
+<br>
+
 ## 语言 / Languages
 
 <div align="center"><img src="assets/langs.svg" alt="语言分布" /></div>
@@ -60,7 +61,6 @@
 
 ## 正在做 / Currently
 
-- **[AIdiff](https://github.com/liu-li-huan-ying)** — Rust + tree-sitter 的 AI 代码审查 CLI，让 review 精确到函数粒度而不是整段 diff。*WIP*
 - 在博客写点东西：[liu-li-huan-ying.github.io](https://liu-li-huan-ying.github.io)
 
 <br>
@@ -85,6 +85,6 @@
 
 👀 主页访问次数：<img src="https://komarev.com/ghpvc/?username=liu-li-huan-ying&style=flat-square&color=C8A97E&label=Visits" alt="访问计数" height="20">
 
-<sub>本页数据由 GitHub Actions 每日自动更新 · 最后更新 2026-09-11 12:20 (UTC+8)</sub>
+<sub>本页数据由 GitHub Actions 每日自动更新 · 最后更新 2026-09-11 12:27 (UTC+8)</sub>
 
 </div>
