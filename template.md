@@ -40,6 +40,12 @@
 
 <br>
 
+## 年度贡献 / Year in 3D
+
+<div align="center"><!--YEAR3D--></div>
+
+<br>
+
 ## 语言 / Languages
 
 <div align="center"><!--LANGS--></div>

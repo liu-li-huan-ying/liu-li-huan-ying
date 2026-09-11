@@ -67,6 +67,8 @@ STYLE = (
     ".t{fill:var(--text)}.d{fill:var(--dim)}.m{fill:var(--mute)}"
     ".g{fill:var(--gold)}.s{fill:var(--soft)}.h{fill:var(--hair)}"
     ".hb{fill:none;stroke:var(--hair);stroke-width:1}"
+    ".gs{fill:var(--gold);opacity:.72}.gd{fill:var(--gold);opacity:.45}"
+    ".hf{fill:var(--hair);opacity:.32}"
     "</style>"
 )
 
@@ -329,6 +331,63 @@ def svg_weekday(d):
     return panel(base + 28, "".join(out))
 
 
+def svg_year3d(d):
+    """等距 3D 年度贡献柱（自制，墨黑+金，透明底）—— 与原生热力图互补的签名级视觉。"""
+    days = d["days"]
+    cells = [(i // 7, i % 7, day["count"]) for i, day in enumerate(days)]
+
+    def level(c):
+        if c == 0:
+            return 0
+        if c <= 3:
+            return 1
+        if c <= 7:
+            return 2
+        if c <= 14:
+            return 3
+        return 4
+
+    H_BY_LV = [0, 12, 26, 42, 60]  # 0 = 平铺地砖
+    hw, hh = 9.0, 4.5
+    polys = []
+    for c, r, cnt in cells:
+        lv = level(cnt)
+        h = H_BY_LV[lv]
+        bx = (c - r) * hw
+        by = (c + r) * hh
+        top = (bx, by - hh); right = (bx + hw, by); bot = (bx, by + hh); left = (bx - hw, by)
+        if h <= 0:
+            polys.append((c + r,
+                f'<polygon points="{top[0]:.1f},{top[1]:.1f} {right[0]:.1f},{right[1]:.1f} '
+                f'{bot[0]:.1f},{bot[1]:.1f} {left[0]:.1f},{left[1]:.1f}" class="hf"/>'))
+        else:
+            tT = (bx, by - hh - h); tR = (bx + hw, by - h); tB = (bx, by + hh - h); tL = (bx - hw, by - h)
+            faces = (
+                f'<polygon points="{tT[0]:.1f},{tT[1]:.1f} {tR[0]:.1f},{tR[1]:.1f} '
+                f'{tB[0]:.1f},{tB[1]:.1f} {tL[0]:.1f},{tL[1]:.1f}" class="g"/>'
+                f'<polygon points="{left[0]:.1f},{left[1]:.1f} {bot[0]:.1f},{bot[1]:.1f} '
+                f'{tB[0]:.1f},{tB[1]:.1f} {tL[0]:.1f},{tL[1]:.1f}" class="gd"/>'
+                f'<polygon points="{right[0]:.1f},{right[1]:.1f} {bot[0]:.1f},{bot[1]:.1f} '
+                f'{tB[0]:.1f},{tB[1]:.1f} {tR[0]:.1f},{tR[1]:.1f}" class="gs"/>')
+            polys.append((c + r, faces))
+    polys.sort(key=lambda p: p[0])  # 后→前 画家算法
+    inner = "".join(p[1] for p in polys)
+    xs, ys = [], []
+    for c, r, cnt in cells:
+        bx = (c - r) * hw; by = (c + r) * hh; h = H_BY_LV[level(cnt)]
+        for px, py in [(bx, by - hh - h), (bx + hw, by), (bx, by + hh), (bx - hw, by - h)]:
+            xs.append(px); ys.append(py)
+    pad = 14
+    vbx = min(xs) - pad; vby = min(ys) - pad
+    vbw = (max(xs) - min(xs)) + 2 * pad; vbh = (max(ys) - min(ys)) + 2 * pad
+    W3, H3 = 720, int(round(720 * vbh / vbw))
+    svg = (f'<svg xmlns="http://www.w3.org/2000/svg" width="{W3}" height="{H3}" '
+           f'viewBox="{vbx:.1f} {vby:.1f} {vbw:.1f} {vbh:.1f}" fill="none" '
+           f'style="max-width:100%;height:auto">' + STYLE + inner + "</svg>")
+    validate(svg, "YEAR3D")
+    return svg
+
+
 def svg_langs(d):
     repos = [r for r in d["repos"] if not r.get("fork")]
     agg = {}
@@ -507,6 +566,7 @@ def main():
         "STATS": svg_stats(stats),
         "GRAPH": svg_monthly(d),
         "WEEKDAY": svg_weekday(d),
+        "YEAR3D": svg_year3d(d),
         "LANGS": svg_langs(d),
         "SKILLS": svg_skills(),
         "FEED": svg_feed(d),
@@ -525,7 +585,7 @@ def main():
         tpl = f.read()
     for k, v in parts.items():
         alt = {"HEADER": "琉璃幻影", "MANIFESTO": "个人宣言", "STATS": "GitHub 数据",
-               "GRAPH": "每月贡献柱状图", "WEEKDAY": "每周贡献节奏", "LANGS": "语言分布", "SKILLS": "技术栈",
+               "GRAPH": "每月贡献柱状图", "WEEKDAY": "每周贡献节奏", "YEAR3D": "年度贡献 3D", "LANGS": "语言分布", "SKILLS": "技术栈",
                "FEED": "最近动态", "FOOTER": "页脚", "UPDATED": "更新时间"}[k]
         if k == "UPDATED":
             tpl = tpl.replace(f"<!--{k}-->", v)
@@ -541,7 +601,7 @@ def main():
             "align-items:center;gap:16px;padding:28px 16px'>",
             "<div style='width:720px;max-width:100%;display:flex;flex-direction:column;"
             "gap:16px'>"]
-    for k in ["HEADER", "MANIFESTO", "STATS", "GRAPH", "WEEKDAY", "LANGS", "SKILLS", "FEED", "FOOTER"]:
+    for k in ["HEADER", "MANIFESTO", "STATS", "GRAPH", "WEEKDAY", "YEAR3D", "LANGS", "SKILLS", "FEED", "FOOTER"]:
         prev.append(f"<div style='border-radius:8px;overflow:hidden'>"
                     f"<img src='{data_uri(parts[k])}' style='width:100%;display:block'/></div>")
     prev.append("</div></body>")
