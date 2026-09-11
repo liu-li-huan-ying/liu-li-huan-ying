@@ -40,9 +40,9 @@
 
 <br>
 
-## 年度贡献 / Year in 3D
+## 近期贡献 / Last 13 Weeks
 
-<div align="center"><img src="assets/year3d.svg" alt="年度贡献 3D" /></div>
+<div align="center"><img src="assets/year3d.svg" alt="近 13 周贡献 3D" /></div>
 
 <br>
 
@@ -91,6 +91,6 @@
 
 👀 主页访问次数：<img src="https://komarev.com/ghpvc/?username=liu-li-huan-ying&style=flat-square&color=C8A97E&label=Visits" alt="访问计数" height="20">
 
-<sub>本页数据由 GitHub Actions 每日自动更新 · 最后更新 2026-09-11 12:44 (UTC+8)</sub>
+<sub>本页数据由 GitHub Actions 每日自动更新 · 最后更新 2026-09-11 23:46 (UTC+8)</sub>
 
 </div>

@@ -40,7 +40,7 @@
 
 <br>
 
-## 年度贡献 / Year in 3D
+## 近期贡献 / Last 13 Weeks
 
 <div align="center"><!--YEAR3D--></div>
 

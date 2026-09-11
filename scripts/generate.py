@@ -60,7 +60,7 @@ ASSETS = os.path.join(ROOT, "assets")
 STYLE = (
     "<style>"
     ":root{--text:#ECEAE4;--dim:#8b919b;--mute:#6b7280;--gold:#C8A97E;"
-    "--soft:#E6D2B0;--goldhi:#E6D2B0;--hair:#232a35}"
+    "--soft:#E6D2B0;--goldhi:#D9BB8C;--hair:#232a35}"
     "@media (prefers-color-scheme: light){"
     ":root{--text:#1f2328;--dim:#59636e;--mute:#818b96;--gold:#9a753f;"
     "--soft:#7d5e30;--goldhi:#b8945a;--hair:#d1d9e0}}"
@@ -280,6 +280,7 @@ def svg_monthly(d):
         f'<text x="{W-right}" y="28" text-anchor="end" font-family="{MONO}" '
         f'font-size="11" letter-spacing="1" class="m">近 12 个月 · 合计 {total:,}</text>',
         f'<line x1="{left}" y1="40" x2="{W-right}" y2="40" class="hb"/>',
+        f'<line x1="{left}" y1="{base}" x2="{W-right}" y2="{base}" class="hb"/>',
     ]
     for i, c in enumerate(counts):
         x = left + i * (barW + gap)
@@ -292,6 +293,9 @@ def svg_monthly(d):
             out.append(
                 f'<text x="{x+barW/2:.1f}" y="{yb-6:.1f}" text-anchor="middle" '
                 f'font-family="{MONO}" font-size="9" class="m">{c}</text>')
+        else:
+            out.append(
+                f'<rect x="{x+barW/2-4:.1f}" y="{base-2}" width="8" height="2" class="h"/>')
         out.append(
             f'<text x="{x+barW/2:.1f}" y="{base+16:.1f}" text-anchor="middle" '
             f'font-family="{SANS}" font-size="10" class="d">{seq[i][1]}月</text>')
@@ -320,6 +324,7 @@ def svg_weekday(d):
         f'<text x="{W-right}" y="28" text-anchor="end" font-family="{MONO}" '
         f'font-size="11" letter-spacing="1" class="m">一周 {total:,} 次 · 高峰 周{labels[peak_i-1]}</text>',
         f'<line x1="{left}" y1="40" x2="{W-right}" y2="40" class="hb"/>',
+        f'<line x1="{left}" y1="{base}" x2="{W-right}" y2="{base}" class="hb"/>',
     ]
     for i, c in enumerate(counts):
         x = left + i * (barW + gap)
@@ -335,23 +340,23 @@ def svg_weekday(d):
 
 
 def svg_year3d(d):
-    """等距 3D 年度贡献柱（自制，墨黑+金，透明底）+ 光影渐变 + 月份坐标。"""
-    days = d["days"]
+    """等距 3D 贡献日历（近 13 周特写，墨黑+金，透明底）—— 与原生全年热力图远近互补。"""
+    days = d["days"][-91:]  # 近 13 周
     cells = [(i // 7, i % 7, day["count"]) for i, day in enumerate(days)]
 
     def level(c):
         if c == 0:
             return 0
-        if c <= 3:
+        if c <= 2:
             return 1
-        if c <= 7:
+        if c <= 5:
             return 2
-        if c <= 14:
+        if c <= 9:
             return 3
         return 4
 
-    H_BY_LV = [0, 14, 30, 48, 68]  # 0 = 平铺地砖
-    hw, hh = 10.0, 5.0
+    H_BY_LV = [0, 12, 26, 42, 58]  # 0 = 平铺地砖
+    hw, hh = 13.0, 6.5
     polys = []
     for c, r, cnt in cells:
         lv = level(cnt)
@@ -376,32 +381,29 @@ def svg_year3d(d):
                 f'<polygon points="{left}" class="gd"/>'
                 f'<polygon points="{right}" class="gs"/>'))
     polys.sort(key=lambda p: p[0])  # 后→前 画家算法
-    # 月份坐标（前排 r=6 底边）
+    # 月份坐标：水平轴置于网格下方（不随等距投影斜漂）
     mlabels, prev_m, ncols = [], None, len(days) // 7
     for c in range(ncols):
         if c * 7 >= len(days):
             break
         m = days[c * 7]["date"].month
         if m != prev_m:
-            bx = (c - 6) * hw; by = (c + 6) * hh
-            mlabels.append((bx, by + hh + 13, f"{m}月"))
+            mlabels.append(((c - 6) * hw, f"{m}月"))
             prev_m = m
+    axis_y = ((ncols - 1) + 6) * hh + hh + 24
+    axis = (f'<line x1="{(0 - 6) * hw - hw:.1f}" y1="{axis_y - 9:.1f}" '
+            f'x2="{((ncols - 1) - 6) * hw + hw:.1f}" y2="{axis_y - 9:.1f}" class="hb"/>')
     mtxt = "".join(
-        f'<text x="{x:.1f}" y="{y:.1f}" text-anchor="middle" font-family="{SANS}" '
-        f'font-size="9.5" class="d">{esc(lbl)}</text>' for x, y, lbl in mlabels)
-    # 地平线（前排底边）
-    fl = ((0 - 6) * hw, (0 + 6) * hh + hh)
-    fr = ((ncols - 1 - 6) * hw, ((ncols - 1) + 6) * hh + hh)
-    horizon = (f'<line x1="{fl[0]:.1f}" y1="{fl[1]:.1f}" x2="{fr[0]:.1f}" '
-               f'y2="{fr[1]:.1f}" class="hb"/>')
-    inner = horizon + "".join(p[1] for p in polys) + mtxt
+        f'<text x="{x:.1f}" y="{axis_y:.1f}" text-anchor="middle" font-family="{SANS}" '
+        f'font-size="10.5" class="d">{esc(lbl)}</text>' for x, lbl in mlabels)
+    inner = "".join(p[1] for p in polys) + axis + mtxt
     xs, ys = [], []
     for c, r, cnt in cells:
         bx = (c - r) * hw; by = (c + r) * hh; h = H_BY_LV[level(cnt)]
         for px, py in [(bx, by - hh - h), (bx + hw, by), (bx, by + hh), (bx - hw, by - h)]:
             xs.append(px); ys.append(py)
-    for x, y, _ in mlabels:
-        xs.append(x); ys.append(y)
+    for x, _lbl in mlabels:
+        xs.append(x); ys.append(axis_y)
     pad = 16
     vbx = min(xs) - pad; vby = min(ys) - pad
     vbw = (max(xs) - min(xs)) + 2 * pad; vbh = (max(ys) - min(ys)) + 2 * pad
@@ -427,21 +429,13 @@ def svg_langs(d):
         return ""
     total = sum(agg.values())
     top = sorted(agg.items(), key=lambda kv: -kv[1])[:8]
-    bar_h, h = 5, 120
-    out = [f'<rect x="0" y="0" width="{W}" height="{bar_h}" rx="2.5" class="h"/>']
-    x = 0.0
-    for lang, size in top:
-        w = W * size / total
-        c = LANG_COLORS.get(lang, FALLBACK)
-        out.append(
-            f'<rect x="{x:.1f}" y="0" width="{w:.1f}" height="{bar_h}" rx="2.5" '
-            f'fill="{c}"><title>{esc(lang)}</title></rect>')
-        x += w
+    h = 100
+    out = []
     per_row = 4
     for i, (lang, size) in enumerate(top):
         row, col = divmod(i, per_row)
         lx = col * (W / per_row)
-        ly = 40 + row * 32
+        ly = 38 + row * 36
         pct = size / total * 100
         c = LANG_COLORS.get(lang, FALLBACK)
         out.append(
@@ -533,14 +527,24 @@ def event_text(e):
 
 
 def svg_feed(d, limit=7):
-    events = d["events"][:limit]
-    if not events:
+    # 连续同仓库同类型事件折叠为一条，避免刷屏式重复
+    groups = []
+    for e in d["events"]:
+        key = (e["type"], e["repo"]["name"])
+        if groups and (groups[-1][0]["type"], groups[-1][0]["repo"]["name"]) == key:
+            groups[-1].append(e)
+        else:
+            groups.append([e])
+    groups = groups[:limit]
+    if not groups:
         return ""
     row_h = 30
-    h = len(events) * row_h + 10
+    h = len(groups) * row_h + 10
     now = datetime.now(TZ)
     out = []
-    for i, e in enumerate(events):
+    for i, g in enumerate(groups):
+        e = g[0]
+        repo = e["repo"]["name"].split("/")[-1]
         y = 16 + i * row_h
         t = datetime.strptime(e["created_at"], "%Y-%m-%dT%H:%M:%SZ").replace(
             tzinfo=timezone.utc).astimezone(TZ)
@@ -553,13 +557,21 @@ def svg_feed(d, limit=7):
             ago = f"{delta.days} 天前"
         else:
             ago = f"{delta.days // 30} 个月前"
+        txt = event_text(e)
+        if len(g) > 1:
+            if e["type"] == "PushEvent":
+                commits = sum(len((x.get("payload") or {}).get("commits") or []) for x in g)
+                txt = (f"向 {repo} 推送 {len(g)} 次 · 共 {commits} 个提交"
+                       if commits else f"向 {repo} 推送 {len(g)} 次")
+            else:
+                txt = f"{txt} ×{len(g)}"
         out.append(
             f'<circle cx="10" cy="{y - 4}" r="3" class="g"/>'
             f'<text x="26" y="{y}" font-family="{SANS}" font-size="13" class="t">'
-            f'{esc(event_text(e))}</text>'
+            f'{esc(txt)}</text>'
             f'<text x="{W}" y="{y}" text-anchor="end" font-family="{MONO}" '
             f'font-size="11" class="m">{esc(ago)}</text>')
-        if i < len(events) - 1:
+        if i < len(groups) - 1:
             out.append(f'<rect x="10" y="{y + 9}" width="1" height="11" class="h"/>')
     return panel(h, "".join(out))
 
@@ -613,7 +625,7 @@ def main():
         tpl = f.read()
     for k, v in parts.items():
         alt = {"HEADER": "琉璃幻影", "MANIFESTO": "个人宣言", "STATS": "GitHub 数据",
-               "GRAPH": "每月贡献柱状图", "WEEKDAY": "每周贡献节奏", "YEAR3D": "年度贡献 3D", "LANGS": "语言分布", "SKILLS": "技术栈",
+               "GRAPH": "每月贡献柱状图", "WEEKDAY": "每周贡献节奏", "YEAR3D": "近 13 周贡献 3D", "LANGS": "语言分布", "SKILLS": "技术栈",
                "FEED": "最近动态", "FOOTER": "页脚", "UPDATED": "更新时间"}[k]
         if k == "UPDATED":
             tpl = tpl.replace(f"<!--{k}-->", v)
