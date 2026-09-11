@@ -60,15 +60,15 @@ ASSETS = os.path.join(ROOT, "assets")
 STYLE = (
     "<style>"
     ":root{--text:#ECEAE4;--dim:#8b919b;--mute:#6b7280;--gold:#C8A97E;"
-    "--soft:#E6D2B0;--hair:#232a35}"
+    "--soft:#E6D2B0;--goldhi:#E6D2B0;--hair:#232a35}"
     "@media (prefers-color-scheme: light){"
     ":root{--text:#1f2328;--dim:#59636e;--mute:#818b96;--gold:#9a753f;"
-    "--soft:#7d5e30;--hair:#d1d9e0}}"
+    "--soft:#7d5e30;--goldhi:#b8945a;--hair:#d1d9e0}}"
     ".t{fill:var(--text)}.d{fill:var(--dim)}.m{fill:var(--mute)}"
     ".g{fill:var(--gold)}.s{fill:var(--soft)}.h{fill:var(--hair)}"
     ".hb{fill:none;stroke:var(--hair);stroke-width:1}"
     ".gs{fill:var(--gold);opacity:.72}.gd{fill:var(--gold);opacity:.45}"
-    ".hf{fill:var(--hair);opacity:.32}"
+    ".hf{fill:var(--hair);opacity:.16}"
     "</style>"
 )
 
@@ -126,7 +126,10 @@ def svg_open(h):
 
 def panel(h, inner):
     """透明底、无外壳的 SVG 片段。"""
-    return svg_open(h) + STYLE + inner + "</svg>"
+    defs = ('<defs><linearGradient id="barg" x1="0" y1="0" x2="0" y2="1">'
+            '<stop offset="0" stop-color="var(--goldhi)"/>'
+            '<stop offset="1" stop-color="var(--gold)"/></linearGradient></defs>')
+    return svg_open(h) + defs + STYLE + inner + "</svg>"
 
 
 def data_uri(svg):
@@ -284,7 +287,7 @@ def svg_monthly(d):
         yb = base - bh
         out.append(
             f'<rect x="{x:.1f}" y="{yb:.1f}" width="{barW:.1f}" height="{bh:.1f}" '
-            f'rx="2" class="g"><title>{seq[i][0]}年{seq[i][1]}月 · {c} 次</title></rect>')
+            f'rx="2" fill="url(#barg)"><title>{seq[i][0]}年{seq[i][1]}月 · {c} 次</title></rect>')
         if c > 0:
             out.append(
                 f'<text x="{x+barW/2:.1f}" y="{yb-6:.1f}" text-anchor="middle" '
@@ -324,7 +327,7 @@ def svg_weekday(d):
         yb = base - bh
         out.append(
             f'<rect x="{x:.1f}" y="{yb:.1f}" width="{barW:.1f}" height="{bh:.1f}" '
-            f'rx="2" class="g"><title>周{labels[i]} · {c} 次</title></rect>')
+            f'rx="2" fill="url(#barg)"><title>周{labels[i]} · {c} 次</title></rect>')
         out.append(
             f'<text x="{x+barW/2:.1f}" y="{base+16:.1f}" text-anchor="middle" '
             f'font-family="{SANS}" font-size="11" class="d">{labels[i]}</text>')
@@ -332,7 +335,7 @@ def svg_weekday(d):
 
 
 def svg_year3d(d):
-    """等距 3D 年度贡献柱（自制，墨黑+金，透明底）—— 与原生热力图互补的签名级视觉。"""
+    """等距 3D 年度贡献柱（自制，墨黑+金，透明底）+ 光影渐变 + 月份坐标。"""
     days = d["days"]
     cells = [(i // 7, i % 7, day["count"]) for i, day in enumerate(days)]
 
@@ -347,43 +350,68 @@ def svg_year3d(d):
             return 3
         return 4
 
-    H_BY_LV = [0, 12, 26, 42, 60]  # 0 = 平铺地砖
-    hw, hh = 9.0, 4.5
+    H_BY_LV = [0, 14, 30, 48, 68]  # 0 = 平铺地砖
+    hw, hh = 10.0, 5.0
     polys = []
     for c, r, cnt in cells:
         lv = level(cnt)
         h = H_BY_LV[lv]
         bx = (c - r) * hw
         by = (c + r) * hh
-        top = (bx, by - hh); right = (bx + hw, by); bot = (bx, by + hh); left = (bx - hw, by)
         if h <= 0:
-            polys.append((c + r,
-                f'<polygon points="{top[0]:.1f},{top[1]:.1f} {right[0]:.1f},{right[1]:.1f} '
-                f'{bot[0]:.1f},{bot[1]:.1f} {left[0]:.1f},{left[1]:.1f}" class="hf"/>'))
+            tw, th = hw * 0.62, hh * 0.62  # 内缩淡地砖，降噪
+            pts = (f'{bx:.1f},{by-th:.1f} {bx+tw:.1f},{by:.1f} '
+                   f'{bx:.1f},{by+th:.1f} {bx-tw:.1f},{by:.1f}')
+            polys.append((c + r, f'<polygon points="{pts}" class="hf"/>'))
         else:
             tT = (bx, by - hh - h); tR = (bx + hw, by - h); tB = (bx, by + hh - h); tL = (bx - hw, by - h)
-            faces = (
-                f'<polygon points="{tT[0]:.1f},{tT[1]:.1f} {tR[0]:.1f},{tR[1]:.1f} '
-                f'{tB[0]:.1f},{tB[1]:.1f} {tL[0]:.1f},{tL[1]:.1f}" class="g"/>'
-                f'<polygon points="{left[0]:.1f},{left[1]:.1f} {bot[0]:.1f},{bot[1]:.1f} '
-                f'{tB[0]:.1f},{tB[1]:.1f} {tL[0]:.1f},{tL[1]:.1f}" class="gd"/>'
-                f'<polygon points="{right[0]:.1f},{right[1]:.1f} {bot[0]:.1f},{bot[1]:.1f} '
-                f'{tB[0]:.1f},{tB[1]:.1f} {tR[0]:.1f},{tR[1]:.1f}" class="gs"/>')
-            polys.append((c + r, faces))
+            top = (f'{tT[0]:.1f},{tT[1]:.1f} {tR[0]:.1f},{tR[1]:.1f} '
+                   f'{tB[0]:.1f},{tB[1]:.1f} {tL[0]:.1f},{tL[1]:.1f}')
+            left = (f'{bx-hw:.1f},{by:.1f} {bx:.1f},{by+hh:.1f} '
+                    f'{tB[0]:.1f},{tB[1]:.1f} {tL[0]:.1f},{tL[1]:.1f}')
+            right = (f'{bx+hw:.1f},{by:.1f} {bx:.1f},{by+hh:.1f} '
+                     f'{tB[0]:.1f},{tB[1]:.1f} {tR[0]:.1f},{tR[1]:.1f}')
+            polys.append((c + r,
+                f'<polygon points="{top}" fill="url(#barg)"/>'
+                f'<polygon points="{left}" class="gd"/>'
+                f'<polygon points="{right}" class="gs"/>'))
     polys.sort(key=lambda p: p[0])  # 后→前 画家算法
-    inner = "".join(p[1] for p in polys)
+    # 月份坐标（前排 r=6 底边）
+    mlabels, prev_m, ncols = [], None, len(days) // 7
+    for c in range(ncols):
+        if c * 7 >= len(days):
+            break
+        m = days[c * 7]["date"].month
+        if m != prev_m:
+            bx = (c - 6) * hw; by = (c + 6) * hh
+            mlabels.append((bx, by + hh + 13, f"{m}月"))
+            prev_m = m
+    mtxt = "".join(
+        f'<text x="{x:.1f}" y="{y:.1f}" text-anchor="middle" font-family="{SANS}" '
+        f'font-size="9.5" class="d">{esc(lbl)}</text>' for x, y, lbl in mlabels)
+    # 地平线（前排底边）
+    fl = ((0 - 6) * hw, (0 + 6) * hh + hh)
+    fr = ((ncols - 1 - 6) * hw, ((ncols - 1) + 6) * hh + hh)
+    horizon = (f'<line x1="{fl[0]:.1f}" y1="{fl[1]:.1f}" x2="{fr[0]:.1f}" '
+               f'y2="{fr[1]:.1f}" class="hb"/>')
+    inner = horizon + "".join(p[1] for p in polys) + mtxt
     xs, ys = [], []
     for c, r, cnt in cells:
         bx = (c - r) * hw; by = (c + r) * hh; h = H_BY_LV[level(cnt)]
         for px, py in [(bx, by - hh - h), (bx + hw, by), (bx, by + hh), (bx - hw, by - h)]:
             xs.append(px); ys.append(py)
-    pad = 14
+    for x, y, _ in mlabels:
+        xs.append(x); ys.append(y)
+    pad = 16
     vbx = min(xs) - pad; vby = min(ys) - pad
     vbw = (max(xs) - min(xs)) + 2 * pad; vbh = (max(ys) - min(ys)) + 2 * pad
     W3, H3 = 720, int(round(720 * vbh / vbw))
+    defs = ('<defs><linearGradient id="barg" x1="0" y1="0" x2="0" y2="1">'
+            '<stop offset="0" stop-color="var(--goldhi)"/>'
+            '<stop offset="1" stop-color="var(--gold)"/></linearGradient></defs>')
     svg = (f'<svg xmlns="http://www.w3.org/2000/svg" width="{W3}" height="{H3}" '
            f'viewBox="{vbx:.1f} {vby:.1f} {vbw:.1f} {vbh:.1f}" fill="none" '
-           f'style="max-width:100%;height:auto">' + STYLE + inner + "</svg>")
+           f'style="max-width:100%;height:auto">' + defs + STYLE + inner + "</svg>")
     validate(svg, "YEAR3D")
     return svg
 

@@ -22,6 +22,7 @@ for fn in sorted(os.listdir(ASSETS)):
     root = ET.fromstring(open(os.path.join(ASSETS, fn), encoding="utf-8").read())
     vb = [float(x) for x in root.get("viewBox").split()]
     w, h = vb[2], vb[3]
+    xmin, ymin, xmax, ymax = vb[0], vb[1], vb[0] + vb[2], vb[1] + vb[3]
     name = fn
     max_x = max_y = min_x = 0.0
     for el in root.iter():
@@ -46,16 +47,16 @@ for fn in sorted(os.listdir(ASSETS)):
                 else:
                     max_x = max(max_x, x + tw); min_x = x
                 max_y = max(max_y, y + size * 0.25)
-                if min_x < -1:
+                if min_x < xmin - 0.5:
                     print(f"  ⚠ [{name}] 文本左溢出 x={min_x:.1f}: {(el.text or '')[:18]}")
                     problems += 1
         except (TypeError, ValueError):
             pass
     flags = []
-    if max_x > W + 0.5:
-        flags.append(f"右越界 {max_x:.1f}>{W}")
-    if max_y > h + 0.5:
-        flags.append(f"下越界 {max_y:.1f}>{h:.0f}")
+    if max_x > xmax + 0.5:
+        flags.append(f"右越界 {max_x:.1f}>{xmax:.0f}")
+    if max_y > ymax + 0.5:
+        flags.append(f"下越界 {max_y:.1f}>{ymax:.0f}")
     status = "❌ " + ", ".join(flags) if flags else "✅"
     if flags:
         problems += 1
