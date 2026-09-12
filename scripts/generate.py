@@ -253,8 +253,18 @@ def svg_stats(stats):
     return panel(h, "".join(inner))
 
 
+def bar_path(x, top, w, h, base, r=3.0):
+    """柱形路径：只圆顶部 + 平底贴基线（rect 的 rx 会把底角也圆掉，很廉价）。"""
+    r = min(r, w / 2, h)
+    return (f'M{x:.1f},{base:.1f} L{x:.1f},{top + r:.1f} '
+            f'Q{x:.1f},{top:.1f} {x + r:.1f},{top:.1f} '
+            f'L{x + w - r:.1f},{top:.1f} '
+            f'Q{x + w:.1f},{top:.1f} {x + w:.1f},{top + r:.1f} '
+            f'L{x + w:.1f},{base:.1f} Z')
+
+
 def svg_monthly(d):
-    """近 12 个月贡献柱状图 —— 与原生热力图互补，不重复。"""
+    """近 12 个月贡献（细柱 + 圆顶平底）—— 与原生热力图互补，不重复。"""
     md = defaultdict(int)
     for day in d["days"]:
         md[(day["date"].year, day["date"].month)] += day["count"]
@@ -270,36 +280,33 @@ def svg_monthly(d):
     total = sum(counts)
     maxc = max(counts) or 1
     n = len(seq)
-    left, right, top, base = 20, 20, 56, 196
-    innerW = W - left - right
-    gap = 10
-    barW = (innerW - gap * (n - 1)) / n
-    barMaxH = base - top - 22
+    barW, gap = 26.0, 30.0
+    left = (W - (n * barW + (n - 1) * gap)) / 2
+    base, barMaxH = 196, 112
     out = [
-        f'<text x="{left}" y="28" font-family="{SERIF}" font-size="18" class="t">每月贡献</text>',
-        f'<text x="{W-right}" y="28" text-anchor="end" font-family="{MONO}" '
+        f'<text x="24" y="28" font-family="{SERIF}" font-size="18" class="t">每月贡献</text>',
+        f'<text x="{W-24}" y="28" text-anchor="end" font-family="{MONO}" '
         f'font-size="11" letter-spacing="1" class="m">近 12 个月 · 合计 {total:,}</text>',
-        f'<line x1="{left}" y1="40" x2="{W-right}" y2="40" class="hb"/>',
-        f'<line x1="{left}" y1="{base}" x2="{W-right}" y2="{base}" class="hb"/>',
+        f'<line x1="24" y1="40" x2="{W-24}" y2="40" class="hb"/>',
+        f'<line x1="24" y1="{base}" x2="{W-24}" y2="{base}" class="hb"/>',
     ]
     for i, c in enumerate(counts):
         x = left + i * (barW + gap)
-        bh = max(c / maxc * barMaxH, 2.0) if c > 0 else 0
-        yb = base - bh
-        out.append(
-            f'<rect x="{x:.1f}" y="{yb:.1f}" width="{barW:.1f}" height="{bh:.1f}" '
-            f'rx="2" fill="url(#barg)"><title>{seq[i][0]}年{seq[i][1]}月 · {c} 次</title></rect>')
         if c > 0:
+            bh = c / maxc * barMaxH
             out.append(
-                f'<text x="{x+barW/2:.1f}" y="{yb-6:.1f}" text-anchor="middle" '
-                f'font-family="{MONO}" font-size="9" class="m">{c}</text>')
+                f'<path d="{bar_path(x, base - bh, barW, bh, base)}" fill="url(#barg)">'
+                f'<title>{seq[i][0]}年{seq[i][1]}月 · {c} 次</title></path>')
+            out.append(
+                f'<text x="{x+barW/2:.1f}" y="{base-bh-7:.1f}" text-anchor="middle" '
+                f'font-family="{MONO}" font-size="9.5" class="m">{c}</text>')
         else:
             out.append(
-                f'<rect x="{x+barW/2-4:.1f}" y="{base-2}" width="8" height="2" class="h"/>')
+                f'<rect x="{x+barW/2-5:.1f}" y="{base-2}" width="10" height="2" class="h"/>')
         out.append(
-            f'<text x="{x+barW/2:.1f}" y="{base+16:.1f}" text-anchor="middle" '
+            f'<text x="{x+barW/2:.1f}" y="{base+20:.1f}" text-anchor="middle" '
             f'font-family="{SANS}" font-size="10" class="d">{seq[i][1]}月</text>')
-    return panel(base + 28, "".join(out))
+    return panel(base + 34, "".join(out))
 
 
 def svg_weekday(d):
@@ -314,29 +321,31 @@ def svg_weekday(d):
     maxc = max(counts) or 1
     peak_i = max(range(1, 8), key=lambda i: wd.get(i, 0))
     n = 7
-    left, right, top, base = 24, 24, 52, 150
-    innerW = W - left - right
-    gap = 18
-    barW = (innerW - gap * (n - 1)) / n
-    barMaxH = base - top - 16
+    barW, gap = 40.0, 40.0
+    left = (W - (n * barW + (n - 1) * gap)) / 2
+    base, barMaxH = 196, 110
     out = [
-        f'<text x="{left}" y="28" font-family="{SERIF}" font-size="18" class="t">每周节奏</text>',
-        f'<text x="{W-right}" y="28" text-anchor="end" font-family="{MONO}" '
+        f'<text x="24" y="28" font-family="{SERIF}" font-size="18" class="t">每周节奏</text>',
+        f'<text x="{W-24}" y="28" text-anchor="end" font-family="{MONO}" '
         f'font-size="11" letter-spacing="1" class="m">一周 {total:,} 次 · 高峰 周{labels[peak_i-1]}</text>',
-        f'<line x1="{left}" y1="40" x2="{W-right}" y2="40" class="hb"/>',
-        f'<line x1="{left}" y1="{base}" x2="{W-right}" y2="{base}" class="hb"/>',
+        f'<line x1="24" y1="40" x2="{W-24}" y2="40" class="hb"/>',
+        f'<line x1="24" y1="{base}" x2="{W-24}" y2="{base}" class="hb"/>',
     ]
     for i, c in enumerate(counts):
         x = left + i * (barW + gap)
-        bh = max(c / maxc * barMaxH, 3.0) if c > 0 else 0
-        yb = base - bh
+        if c > 0:
+            bh = c / maxc * barMaxH
+            out.append(
+                f'<path d="{bar_path(x, base - bh, barW, bh, base)}" fill="url(#barg)">'
+                f'<title>周{labels[i]} · {c} 次</title></path>')
+            out.append(
+                f'<text x="{x+barW/2:.1f}" y="{base-bh-7:.1f}" text-anchor="middle" '
+                f'font-family="{MONO}" font-size="9.5" class="m">{c}</text>')
+        cls = "g" if (i + 1) == peak_i else "d"  # 高峰日的星期标签点亮金色
         out.append(
-            f'<rect x="{x:.1f}" y="{yb:.1f}" width="{barW:.1f}" height="{bh:.1f}" '
-            f'rx="2" fill="url(#barg)"><title>周{labels[i]} · {c} 次</title></rect>')
-        out.append(
-            f'<text x="{x+barW/2:.1f}" y="{base+16:.1f}" text-anchor="middle" '
-            f'font-family="{SANS}" font-size="11" class="d">{labels[i]}</text>')
-    return panel(base + 28, "".join(out))
+            f'<text x="{x+barW/2:.1f}" y="{base+20:.1f}" text-anchor="middle" '
+            f'font-family="{SANS}" font-size="11" class="{cls}">{labels[i]}</text>')
+    return panel(base + 34, "".join(out))
 
 
 def svg_year3d(d):
