@@ -5,6 +5,9 @@ import os
 import sys
 import xml.etree.ElementTree as ET
 
+if hasattr(sys.stdout, "reconfigure"):  # Windows 控制台默认 GBK，打不出 ✅
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+
 W = 720
 NS = "{http://www.w3.org/2000/svg}"
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
