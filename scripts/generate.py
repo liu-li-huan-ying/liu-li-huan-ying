@@ -259,37 +259,22 @@ def calc_streaks(days):
 def svg_header(d):
     u = d["user"]
     since = (u.get("created_at") or "")[:4]
-    h = 104
+    h = 88
     name = "琉璃幻影"
     nx = GUT + 46 + 18
     out = [
-        seal_mark(GUT, 26, 46),
+        seal_mark(GUT, 22, 46),
         f'<text x="{nx}" y="52" font-family="{SERIF}" font-size="32" class="t">'
         f'{esc(name)}</text>',
-        f'<text x="{nx + tw(name, 32) + 14}" y="51" font-family="{MONO}" '
-        f'font-size="9.5" letter-spacing="3" class="g">INDEPENDENT BUILDER</text>',
-        f'<text x="{nx}" y="74" font-family="{SANS}" font-size="12.5" class="d">'
-        f'独立开发者 · 造趁手的工具</text>',
-        f'<text x="{W - GUT}" y="40" text-anchor="end" font-family="{MONO}" '
+        f'<text x="{nx}" y="74" font-family="{MONO}" font-size="10" '
+        f'letter-spacing="1" class="m">{esc(u.get("login"))}</text>',
+        f'<text x="{W - GUT}" y="36" text-anchor="end" font-family="{MONO}" '
         f'font-size="10" class="m">China · UTC+8</text>',
-        f'<text x="{W - GUT}" y="57" text-anchor="end" font-family="{MONO}" '
+        f'<text x="{W - GUT}" y="53" text-anchor="end" font-family="{MONO}" '
         f'font-size="10" class="m">GitHub since {esc(since)}</text>',
-        f'<text x="{W - GUT}" y="74" text-anchor="end" font-family="{MONO}" '
-        f'font-size="10" class="m">每日 08:00 自动更新</text>',
-        f'<rect x="{GUT}" y="92" width="{W - GUT * 2}" height="1" class="h"/>',
-    ]
-    return panel(h, "".join(out))
-
-
-def svg_manifesto():
-    h = 106
-    out = [
-        plate("宣言", "MANIFESTO"),
-        f'<text x="{W / 2}" y="80" text-anchor="middle" font-family="{SERIF}" '
-        f'font-size="19" class="t">我造工具，先为自己，也为同样挑剔的人。</text>',
-        f'<text x="{W / 2}" y="98" text-anchor="middle" font-family="{SANS}" '
-        f'font-size="11.5" font-style="italic" class="m">'
-        f'Tools I build for myself first — then for people just as picky.</text>',
+        f'<text x="{W - GUT}" y="70" text-anchor="end" font-family="{MONO}" '
+        f'font-size="10" class="m">每日 08:00 更新</text>',
+        f'<rect x="{GUT}" y="80" width="{W - GUT * 2}" height="1" class="h"/>',
     ]
     return panel(h, "".join(out))
 
@@ -304,8 +289,7 @@ def svg_stats(stats):
         ("最长连续", f"{stats['longest']}", "天"),
         ("当前连续", f"{stats['current']}", "天"),
     ]
-    out = [plate("数据", "BY THE NUMBERS",
-                 f"近 12 个月 · 合计 ★ {stats['stars']}")]
+    out = [plate("数据", "STATS", f"近 12 个月 · 合计 ★ {stats['stars']}")]
     for i in range(1, cols):
         out.append(f'<rect x="{GUT + i * colw:.0f}" y="64" width="1" height="46" class="h"/>')
     for i, (label, val, unit) in enumerate(items):
@@ -402,7 +386,7 @@ def svg_weekday(d):
     top, base = 68, 156
     plotH = base - top
     out = [
-        plate("每周节奏", "WEEKDAY", f"一周 {total:,} 次 · 高峰 周{labels[peak_i - 1]}"),
+        plate("按星期", "WEEKDAY", f"一周 {total:,} 次 · 高峰 周{labels[peak_i - 1]}"),
         f'<line x1="{GUT}" y1="{base}" x2="{W - GUT}" y2="{base}" class="hb"/>',
     ]
     for f in (0.5, 1.0):
@@ -553,10 +537,7 @@ def svg_year3d(d):
             f'rx="1.5" class="gs"/>'
             f'<text x="{x + 7:.1f}" y="{ly + 26}" text-anchor="middle" '
             f'font-family="{MONO}" font-size="8.5" class="m">{esc(lbl)}</text>')
-    out.append(f'<text x="{GUT}" y="{ly - 4}" font-family="{MONO}" font-size="9" '
-               f'letter-spacing="2" class="m">单日贡献 → 柱高</text>')
-
-    head = plate("近 13 周", "ISOMETRIC", "方块越高 = 当天提交越多")
+    head = plate("近 13 周", "ISOMETRIC", "柱高 = 当天次数")
     return panel(int(axis_y + 22), head + "".join(out))
 
 
@@ -572,7 +553,7 @@ def svg_langs(d):
     maxpct = top[0][1] / total * 100
 
     bar_y, bar_h = 62, 9
-    out = [plate("语言构成", "BY BYTES", f"{len(repos)} 个仓库 · 按字节数")]
+    out = [plate("语言", "BY BYTES", f"{len(repos)} 个仓库 · 按字节数")]
     x = GUT
     for i, (lang, size) in enumerate(top):
         seg = (W - GUT * 2) * size / total
@@ -604,7 +585,7 @@ def svg_langs(d):
 
 
 def svg_skills():
-    out = [plate("工具箱", "TOOLBOX", "按用途分，不按热度排")]
+    out = [plate("工具", "TOOLBOX")]
     y = RULE + 22
     for label, items in SKILL_GROUPS:
         out.append(f'<text x="{GUT}" y="{y + 17}" font-family="{MONO}" font-size="9.5" '
@@ -635,8 +616,7 @@ def svg_repos(d):
     stars = sum(r["stargazers_count"] for r in repos)
     cols, tileH, gap = 5, 52, 10
     tileW = (W - GUT * 2 - (cols - 1) * gap) / cols
-    out = [plate("仓库矩阵", "REPOSITORIES",
-                 f"{len(repos)} 个作品仓库 · 合计 ★ {stars}")]
+    out = [plate("仓库", "REPOS", f"{len(repos)} 个 · 合计 ★ {stars}")]
     for i, r in enumerate(shown):
         col, row = i % cols, i // cols
         x = GUT + col * (tileW + gap)
@@ -704,7 +684,7 @@ def svg_feed(d, limit=6):
     maxn = max(sum(g["types"].values()) for _, g in rows)
     row_h = 32
     y0 = RULE + 28
-    out = [plate("近期投入", "RECENT WORK", f"近 {len(d['events'])} 条事件 · 按仓库折叠")]
+    out = [plate("最近", "ACTIVITY", f"近 {len(d['events'])} 条事件 · 按仓库合并")]
     for i, (repo, g) in enumerate(rows):
         y = y0 + i * row_h
         n = sum(g["types"].values())
@@ -722,21 +702,6 @@ def svg_feed(d, limit=6):
             f'<rect x="{GUT + 156}" y="{y + 8}" width="{(W - GUT * 2 - 156) * n / maxn:.1f}" '
             f'height="1.5" class="gs"/>')
     return panel(y0 + len(rows) * row_h + 4, "".join(out))
-
-
-def svg_footer():
-    h = 50
-    cx = W / 2
-    inner = (
-        f'<rect x="{GUT}" y="14" width="{cx - 46 - GUT}" height="1" class="h"/>'
-        f'<rect x="{cx + 46}" y="14" width="{W - GUT - cx - 46}" height="1" class="h"/>'
-        f'<rect x="{cx - 3}" y="11" width="6" height="6" transform="rotate(45 {cx} 14)" '
-        f'class="seal"/>'
-        f'<text x="{cx}" y="36" text-anchor="middle" font-family="{MONO}" '
-        f'font-size="10" letter-spacing="1.5" class="m">'
-        f'Crafted with restraint · 手工 SVG · 2026</text>'
-    )
-    return panel(h, inner)
 
 
 def data_uri(svg):
@@ -761,7 +726,6 @@ def main():
 
     parts = {
         "HEADER": svg_header(d),
-        "MANIFESTO": svg_manifesto(),
         "STATS": svg_stats(stats),
         "TREND": svg_trend(d),
         "WEEKDAY": svg_weekday(d),
@@ -770,7 +734,6 @@ def main():
         "SKILLS": svg_skills(),
         "REPOS": svg_repos(d),
         "FEED": svg_feed(d),
-        "FOOTER": svg_footer(),
         "UPDATED": now.strftime("%Y-%m-%d %H:%M"),
     }
     os.makedirs(ASSETS, exist_ok=True)
@@ -783,10 +746,10 @@ def main():
     tpl_path = os.path.join(ROOT, "template.md")
     with open(tpl_path, encoding="utf-8") as f:
         tpl = f.read()
-    ALT = {"HEADER": "琉璃幻影", "MANIFESTO": "个人宣言", "STATS": "GitHub 数据",
-           "TREND": "近 60 天每日贡献", "WEEKDAY": "每周贡献节奏",
-           "YEAR3D": "近 13 周贡献等距图", "LANGS": "语言构成", "SKILLS": "工具箱",
-           "REPOS": "仓库矩阵", "FEED": "近期投入", "FOOTER": "页脚",
+    ALT = {"HEADER": "琉璃幻影", "STATS": "GitHub 数据",
+           "TREND": "近 60 天每日贡献", "WEEKDAY": "按星期统计",
+           "YEAR3D": "近 13 周贡献等距图", "LANGS": "语言占比",
+           "SKILLS": "常用工具", "REPOS": "公开仓库", "FEED": "最近活动",
            "UPDATED": "更新时间"}
     for k, v in parts.items():
         if k == "UPDATED":
@@ -798,8 +761,8 @@ def main():
     with open(os.path.join(ROOT, "README.md"), "w", encoding="utf-8") as f:
         f.write(tpl)
 
-    keys = ["HEADER", "MANIFESTO", "STATS", "TREND", "WEEKDAY", "YEAR3D",
-            "LANGS", "SKILLS", "REPOS", "FEED", "FOOTER"]
+    keys = ["HEADER", "STATS", "TREND", "WEEKDAY", "YEAR3D",
+            "LANGS", "SKILLS", "REPOS", "FEED"]
 
     def column(bg, scheme):
         html = [f"<div style='color-scheme:{scheme};background:{bg};padding:28px 16px;"

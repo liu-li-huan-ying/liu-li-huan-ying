@@ -4,23 +4,13 @@
 
 </div>
 
-<div align="center">
-
-<!--MANIFESTO-->
-
-</div>
-
-## 关于 / About
-
-想用的东西要是没有，或者做得不够好，就自己写一个。
-
-做东西有三条原则 ——
+## 关于
 
 - **本地优先** — 数据放在你自己的硬盘上，不是我的服务器上。
 - **零订阅** — 买断或者免费，不接受按月交租。
 - **够用就好** — 不堆功能，不为了好看牺牲启动速度。
 
-## 精选 / Selected Work
+## 项目
 
 | 项目 | 说明 | 技术栈 |
 |:---|:---|:---|
@@ -80,22 +70,10 @@
 
 </div>
 
-## 正在做 / Currently
-
-- 在博客写点东西：[liu-li-huan-ying.github.io](https://liu-li-huan-ying.github.io)
-
-## 联系 / Find Me
+## 联系
 
 - **GitHub**：[@liu-li-huan-ying](https://github.com/liu-li-huan-ying)
 - **博客**：[liu-li-huan-ying.github.io](https://liu-li-huan-ying.github.io)
-- 有 bug、有想法、或者单纯想聊聊工具怎么做，欢迎开 issue 或者直接邮件我。
+- 有问题或想法，开 issue 即可。
 
-<div align="center">
-
-<!--FOOTER-->
-
-👀 主页访问次数：<img src="https://komarev.com/ghpvc/?username=liu-li-huan-ying&style=flat-square&color=C8A97E&label=Visits" alt="访问计数" height="20">
-
-<sub>本页数据由 GitHub Actions 每日自动更新 · 最后更新 <!--UPDATED--> (UTC+8)</sub>
-
-</div>
+<sub>数据由 GitHub Actions 每日更新 · 最后更新 <!--UPDATED--> (UTC+8)</sub>
